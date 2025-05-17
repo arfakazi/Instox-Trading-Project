@@ -1,0 +1,95 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>InStocks - Stock Market Simulation</title>
+        <link rel="stylesheet" href="styles.css" />
+        <script src="Scripts/utils.js" defer></script>
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+        <script>
+            // Initialize page when loaded
+            window.onload = function () {
+                // Check if user is logged in
+                initPage();
+
+                // Role-based navigation
+                const role = localStorage.getItem("currentRole");
+                if (role === "team") {
+                    document.getElementById("portfolioBtn").style.display = "";
+                    document.getElementById("purchasesBtn").style.display = "none";
+                    document.getElementById("leaderboardBtn").style.display = "none";
+                    document.getElementById("teamRegBtn").style.display = "none";
+                    document.getElementById("adminButton").style.display = "none";
+                } else if (role === "broker") {
+                    document.getElementById("portfolioBtn").style.display = "none";
+                    document.getElementById("purchasesBtn").style.display = "";
+                    document.getElementById("leaderboardBtn").style.display = "";
+                    document.getElementById("teamRegBtn").style.display = "";
+                    document.getElementById("adminButton").style.display = "none";
+                } else if (role === "admin") {
+                    document.getElementById("portfolioBtn").style.display = "";
+                    document.getElementById("purchasesBtn").style.display = "";
+                    document.getElementById("leaderboardBtn").style.display = "";
+                    document.getElementById("teamRegBtn").style.display = "";
+                    document.getElementById("adminButton").style.display = "";
+                }
+            };
+        </script>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Welcome to InStocks</h1>
+            <div id="userInfo"></div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Navigation</div>
+                    <div class="card-description">Manage your stocks and view market data</div>
+                </div>
+                <div class="card-content">
+                    <div class="button-group">
+                        <button id="portfolioBtn" onclick="window.location.href='portfolio.html'">
+                            View Portfolio
+                        </button>
+                        <button id="purchasesBtn" onclick="window.location.href='purchases.html'">
+                            Buy/Sell Stocks
+                        </button>
+                        <button
+                            id="leaderboardBtn"
+                            onclick="window.location.href='leaderboard.html'"
+                        >
+                            Leaderboard
+                        </button>
+                        <button
+                            id="teamRegBtn"
+                            onclick="window.location.href='team_registration.html'"
+                            class="secondary"
+                        >
+                            Register Team (Broker Only)
+                        </button>
+                        <button id="adminButton" onclick="window.location.href='admin.html'">
+                            Admin Panel
+                        </button>
+                        <button class="destructive" onclick="logout()">Logout</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">About InStocks</div>
+                </div>
+                <div class="card-content">
+                    <p>InStocks is a stock market simulation platform where you can:</p>
+                    <ul>
+                        <li>Buy and sell virtual stocks</li>
+                        <li>Track your portfolio performance</li>
+                        <li>Compete with other traders on the leaderboard</li>
+                    </ul>
+                    <p>Each team starts with AED100,000 of virtual currency.</p>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

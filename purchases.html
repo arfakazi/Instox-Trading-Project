@@ -1,0 +1,121 @@
+<!-- purchases.html -->
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Buy/Sell Stocks</title>
+        <link rel="stylesheet" href="styles.css" />
+        <script src="Scripts/utils.js" defer></script>
+        <script src="Scripts/purchases.js" defer></script>
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Buy/Sell Stocks</h1>
+            <div id="userInfo"></div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Account Balance</div>
+                </div>
+                <div class="card-content">
+                    <h2>Available Funds: <span id="balanceDisplay">AED0</span></h2>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Trade Stocks</div>
+                    <div class="card-description">Buy or sell stocks to other teams</div>
+                </div>
+                <div class="card-content">
+                    <div class="form-group">
+                        <label for="stockSelect">Select Stock</label>
+                        <select id="stockSelect">
+                            <option value="Apple">Apple</option>
+                            <option value="Nike">Nike</option>
+                            <option value="Amazon">Amazon</option>
+                            <option value="O&G">O&G</option>
+                            <option value="Lulu">Lulu</option>
+                            <option value="Salik">Salik</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="price">Price</label>
+                        <input
+                            type="number"
+                            id="price"
+                            placeholder="Enter price"
+                            min="0.01"
+                            step="0.01"
+                        />
+                        <p class="help-text">Enter a positive number</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="quantity">Quantity</label>
+                        <input
+                            type="number"
+                            id="quantity"
+                            placeholder="Enter quantity"
+                            min="1"
+                            step="1"
+                        />
+                        <p class="help-text">Enter a positive integer</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="sellToUser">Sell To</label>
+                        <select id="sellToUser"></select>
+                        <p class="help-text">Only required for selling</p>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button onclick="buyStock()">Buy</button>
+                    <button onclick="sellStock()">Sell</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Select Participant</div>
+                    <div class="card-description">Choose a participant to trade for</div>
+                </div>
+                <div class="card-content">
+                    <select id="participantSelect">
+                        <option value="">Select Participant</option>
+                        <!-- Populated by JS -->
+                    </select>
+                    <div id="participantWarning" class="warning-message" style="display: none">
+                        Please select a participant before trading.
+                    </div>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="secondary" onclick="window.location.href='index.html'">
+                    Back to Home
+                </button>
+                <button class="destructive" onclick="logout()">Logout</button>
+            </div>
+
+            <div id="popupModal" class="modal">
+                <div class="modal-content">
+                    <span class="close" onclick="closePopup()">&times;</span>
+                    <p id="popupMessage"></p>
+                </div>
+            </div>
+        </div>
+        <script>
+            window.onload = function () {
+                if (!initPage()) return;
+                const role = localStorage.getItem("currentRole");
+                if (role !== "broker" && role !== "admin") {
+                    window.location.href = "index.html";
+                    return;
+                }
+                // ...existing purchases.js logic...
+            };
+        </script>
+    </body>
+</html>

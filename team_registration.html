@@ -1,0 +1,91 @@
+<!--team_registration.html-->
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Team Registration</title>
+        <link rel="stylesheet" href="styles.css" />
+        <script src="Scripts/utils.js" defer></script>
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                // Role-based access
+                if (!initPage()) return;
+                const role = localStorage.getItem("currentRole");
+                if (role !== "broker" && role !== "admin") {
+                    window.location.href = "index.html";
+                    return;
+                }
+                const form = document.getElementById("teamRegForm");
+                const status = document.getElementById("regStatus");
+                form.addEventListener("submit", function (e) {
+                    e.preventDefault();
+                    const teamNumber = document.getElementById("teamNumber").value;
+                    const username = document.getElementById("teamUsername").value.trim();
+                    const password = document.getElementById("teamPassword").value;
+                    const p1 = document.getElementById("participant1").value.trim();
+                    if (!teamNumber || !username || !password || !p1) {
+                        status.innerText = "All fields are required.";
+                        status.className = "error-message";
+                        return;
+                    }
+                    try {
+                        registerTeamAccount(teamNumber, username, password, p1);
+                        status.innerText = `Team ${teamNumber} registered as "${username}".`;
+                        status.className = "success-message";
+                        form.reset();
+                    } catch (err) {
+                        status.innerText = err.message;
+                        status.className = "error-message";
+                    }
+                });
+            });
+        </script>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Team Registration (Broker Only)</h1>
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Register a Team</div>
+                    <div class="card-description">
+                        Create a team login and assign 3 participants
+                    </div>
+                </div>
+                <div class="card-content">
+                    <form id="teamRegForm">
+                        <label
+                            >Team Number:
+                            <select id="teamNumber" required>
+                                <option value="">Select Team</option>
+                                <script>
+                                    for (let i = 1; i <= 20; i++) {
+                                        document.write(`<option value="${i}">Team ${i}</option>`);
+                                    }
+                                </script>
+                            </select>
+                        </label>
+                        <label
+                            >Team Username:
+                            <input type="text" id="teamUsername" required placeholder="team1"
+                        /></label>
+                        <label
+                            >Team Password: <input type="password" id="teamPassword" required
+                        /></label>
+                        <label
+                            >Participant 1: <input type="text" id="participant1" required
+                        /></label>
+                        <button type="submit">Register Team</button>
+                    </form>
+                    <div id="regStatus"></div>
+                </div>
+            </div>
+            <div class="button-group">
+                <button class="secondary" onclick="window.location.href='index.html'">
+                    Back to Home
+                </button>
+            </div>
+        </div>
+    </body>
+</html>
