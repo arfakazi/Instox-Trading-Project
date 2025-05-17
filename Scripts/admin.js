@@ -1,48 +1,39 @@
 // admin.js
 
-// Check if user is admin on page load
-window.onload = function () {
-    // Check if user is logged in
-    if (!initPage()) {
-        return;
-    }
+document.addEventListener("DOMContentLoaded", async () => {
+    if (!initPage()) return;
 
-    // Get current user
-    const currentUser = getUser();
-
-    // Check if user is admin
-    const authData = JSON.parse(localStorage.getItem(`${currentUser}_auth`));
-    if (!authData || !authData.isAdmin) {
+    const role = getRole();
+    if (role !== "admin") {
         alert("Access Denied. Admin privileges required.");
         window.location.href = "index.html";
         return;
     }
 
-    // Load admin panel
-    loadAdminPanel();
-};
+    await loadAdminPanel();
+});
 
 // Load admin panel data
-function loadAdminPanel() {
+async function loadAdminPanel() {
     const table = document.getElementById("adminTable");
 
-    // Clear existing table rows except header
     while (table.rows.length > 1) {
         table.deleteRow(1);
     }
 
-    // Add user rows
-    for (let i = 1; i <= 20; i++) {
-        const userId = `Team${i}`;
-        const balance = calculateBalance(userId);
+    // Fetch all brokers and traders from Supabase
+    const users = await getAllTeams();
 
-        // Get user data to check activity
-        const userData = getUserData(userId);
+    for (const user of users) {
+        const userId = user.username;
+        const balance = await calculateBalance(userId);
+        const userData = await getUserData(userId);
         const hasActivity = userData.bought.length > 0 || userData.sold.length > 0;
 
         const row = table.insertRow();
         row.innerHTML = `
             <td>${userId}</td>
+            <td>${user.role}</td>
             <td>${formatCurrency(balance)}</td>
             <td>${
                 hasActivity
@@ -56,9 +47,8 @@ function loadAdminPanel() {
         `;
     }
 }
-
 // Reset a single user
-function resetUser(userId) {
+async function resetUser(userId) {
     if (
         !confirmAction(
             `Are you sure you want to reset ${userId}? This will clear all their transactions.`
@@ -67,26 +57,22 @@ function resetUser(userId) {
         return;
     }
 
-    // Reset user data
-    saveUserData(userId, { bought: [], sold: [] });
+    await resetTransactions(userId);
 
-    // Show success message
     const message = document.getElementById("statusMessage");
     message.textContent = `Reset ${userId} successfully.`;
     message.className = "success-message";
     message.style.display = "block";
 
-    // Hide message after 3 seconds
     setTimeout(() => {
         message.style.display = "none";
     }, 3000);
 
-    // Reload admin panel
-    loadAdminPanel();
+    await loadAdminPanel();
 }
 
 // Reset all users
-function resetAllUsers() {
+async function resetAllUsers() {
     if (
         !confirmAction(
             "Are you sure you want to reset ALL users? This will clear all transactions for all users."
@@ -95,34 +81,45 @@ function resetAllUsers() {
         return;
     }
 
-    // Reset all users
     for (let i = 1; i <= 20; i++) {
         const userId = `Team${i}`;
-        saveUserData(userId, { bought: [], sold: [] });
+        await resetTransactions(userId);
     }
 
-    // Show success message
     const message = document.getElementById("statusMessage");
     message.textContent = "All users have been reset successfully.";
     message.className = "success-message";
     message.style.display = "block";
 
-    // Hide message after 3 seconds
     setTimeout(() => {
         message.style.display = "none";
     }, 3000);
 
-    // Reload admin panel
-    loadAdminPanel();
+    await loadAdminPanel();
+}
+
+// Helper: Reset a team's transactions
+async function resetTransactions(username) {
+    const { data: user, error } = await supabase
+        .from("users")
+        .select("id")
+        .eq("username", username)
+        .single();
+
+    if (error || !user) {
+        console.error(`Failed to reset transactions for ${username}:`, error);
+        return;
+    }
+
+    await supabase.from("transactions").delete().eq("user_id", user.id);
 }
 
 // View user details
-function viewUserDetails(userId) {
-    const userData = getUserData(userId);
-    const balance = calculateBalance(userId);
+async function viewUserDetails(userId) {
+    const userData = await getUserData(userId);
+    const balance = await calculateBalance(userId);
 
-    // Create modal content
-    let content = `
+    const content = `
         <h3>User Details: ${userId}</h3>
         <p>Current Balance: ${formatCurrency(balance)}</p>
         <h4>Transaction Summary:</h4>
@@ -130,7 +127,6 @@ function viewUserDetails(userId) {
         <p>Sales: ${userData.sold.length}</p>
     `;
 
-    // Show modal
     const modal = document.getElementById("detailsModal");
     const modalContent = document.getElementById("detailsContent");
     modalContent.innerHTML = content;
@@ -146,15 +142,14 @@ function closeModal() {
 document.addEventListener("DOMContentLoaded", function () {
     const form = document.getElementById("teamRegistrationForm");
     if (form) {
-        form.addEventListener("submit", function (e) {
+        form.addEventListener("submit", async function (e) {
             e.preventDefault();
             const teamNumber = document.getElementById("teamNumber").value;
             const p1 = document.getElementById("participant1").value.trim();
             if (!teamNumber || !p1) return;
 
-            // Save team using utils.js helper
             try {
-                saveTeam(teamNumber, p1);
+                await registerTeamAccount(teamNumber, p1, "default-password");
                 document.getElementById(
                     "teamRegistrationStatus"
                 ).innerText = `Registered Team ${teamNumber}: Trader - ${p1}`;

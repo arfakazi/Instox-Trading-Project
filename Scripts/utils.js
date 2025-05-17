@@ -142,21 +142,18 @@ async function getTeam(teamNumber) {
 }
 
 async function getAllTeams() {
-    const { data, error } = await supabase.from("teams").select("team_number, trader_username");
+    const { data, error } = await supabase
+        .from("users")
+        .select("username, role")
+        .in("role", ["broker", "trader"]);
 
     if (error) {
         console.error(error);
-        return {};
+        return [];
     }
 
-    const teams = {};
-    for (const row of data) {
-        const teamName = `Team ${row.team_number}`;
-        if (!teams[teamName]) teams[teamName] = [];
-        teams[teamName].push(row.trader_username);
-    }
-
-    return teams;
+    // Return as an array of user objects
+    return data;
 }
 
 // === BROKER UTILITIES ===
