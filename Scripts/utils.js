@@ -3,79 +3,75 @@
 // Constants
 const INITIAL_BALANCE = 100000;
 
-// ------------------------
-// Connect to the SupaBase database
-// ------------------------
-
-const SUPABASE_URL = "https://rnxeqexgzgismtnnfemv.supabase.co"; // Replace with your actual URL
-const SUPABASE_ANON_KEY =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJueGVxZXhnemdpc210bm5mZW12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0ODI4ODMsImV4cCI6MjA2MzA1ODg4M30.-mAHroO8q7hKoN9_5wwkkPNwY-A4rWKrwVwb2Nr-zoM"; // From API settings
-
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// ------------------------
-// 🔹 USER SESSION HELPERS
-// ------------------------
-
+// === SESSION HELPERS ===
 function getUser() {
-    return localStorage.getItem("currentUser");
+    return sessionStorage.getItem("currentUser");
 }
 
 function setUser(username) {
-    localStorage.setItem("currentUser", username);
+    sessionStorage.setItem("currentUser", username);
 }
 
 function removeUser() {
-    localStorage.removeItem("currentUser");
+    sessionStorage.removeItem("currentUser");
 }
 
-// ------------------------
-// 🔹 USER DATA MANAGEMENT
-// ------------------------
+// === USER DATA ===
+async function getUserData(username) {
+    const { data: user } = await supabase
+        .from("users")
+        .select("id")
+        .eq("username", username)
+        .single();
 
-function getUserData(user) {
-    return JSON.parse(localStorage.getItem(user)) || { bought: [], sold: [] };
+    if (!user) return { bought: [], sold: [] };
+
+    const { data, error } = await supabase.from("transactions").select("*").eq("user_id", user.id);
+
+    if (error) {
+        console.error(error);
+        return { bought: [], sold: [] };
+    }
+
+    const bought = data.filter((t) => t.type === "buy");
+    const sold = data.filter((t) => t.type === "sell");
+
+    return { bought, sold };
 }
 
-function saveUserData(user, data) {
-    localStorage.setItem(user, JSON.stringify(data));
-}
-
-function calculateBalance(user) {
-    const data = getUserData(user);
+async function calculateBalance(username) {
+    const data = await getUserData(username);
     const totalSpent = data.bought.reduce(
-        (sum, entry) => sum + parseFloat(entry.price) * parseInt(entry.quantity),
+        (sum, t) => sum + parseFloat(t.price) * parseInt(t.quantity),
         0
     );
     const totalEarned = data.sold.reduce(
-        (sum, entry) => sum + parseFloat(entry.price) * parseInt(entry.quantity),
+        (sum, t) => sum + parseFloat(t.price) * parseInt(t.quantity),
         0
     );
     return parseFloat((INITIAL_BALANCE - totalSpent + totalEarned).toFixed(2));
 }
 
-function canAffordPurchase(user, cost) {
-    return calculateBalance(user) >= cost;
+async function canAffordPurchase(username, cost) {
+    const balance = await calculateBalance(username);
+    return balance >= cost;
 }
 
-function getAvailableStockQuantity(user, stockName) {
-    const data = getUserData(user);
-    const totalBought = data.bought
-        .filter((entry) => entry.stock === stockName)
-        .reduce((sum, entry) => sum + parseInt(entry.quantity), 0);
-    const totalSold = data.sold
-        .filter((entry) => entry.stock === stockName)
-        .reduce((sum, entry) => sum + parseInt(entry.quantity), 0);
-    return totalBought - totalSold;
+async function getAvailableStockQuantity(username, stockName) {
+    const data = await getUserData(username);
+    const boughtQty = data.bought
+        .filter((t) => t.stock === stockName)
+        .reduce((sum, t) => sum + parseInt(t.quantity), 0);
+    const soldQty = data.sold
+        .filter((t) => t.stock === stockName)
+        .reduce((sum, t) => sum + parseInt(t.quantity), 0);
+    return boughtQty - soldQty;
 }
 
-// ------------------------
-// 🔹 AUTH + ROLE CONTROL
-// ------------------------
-
+// === AUTH + ROLE ===
 function logout() {
     removeUser();
-    localStorage.removeItem("currentRole");
+    sessionStorage.removeItem("currentRole");
     window.location.href = "login.html";
 }
 
@@ -86,10 +82,11 @@ function initPage() {
         return false;
     }
 
-    const userInfoElement = document.getElementById("userInfo");
-    if (userInfoElement) {
-        userInfoElement.innerText = `Logged in as: ${user}`;
+    const el = document.getElementById("userInfo");
+    if (el) {
+        el.innerText = `Logged in as: ${user}`;
     }
+
     return true;
 }
 
@@ -101,130 +98,118 @@ function formatCurrency(amount) {
     return `AED${amount.toLocaleString()}`;
 }
 
-function confirmAction(message) {
-    return confirm(message);
+function confirmAction(msg) {
+    return confirm(msg);
 }
 
 function getRole() {
-    return localStorage.getItem("currentRole");
+    return sessionStorage.getItem("currentRole");
 }
 
-// ------------------------
-// 🔹 TEAM REGISTRATION
-// ------------------------
+// === TEAM REGISTRATION ===
+async function registerTeamAccount(teamNumber, username, password) {
+    // Save to users table
+    const { error: userError } = await supabase
+        .from("users")
+        .insert([{ username, password, role: "trader" }]);
 
-// Save a single user/team trader
-function saveTeam(teamNumber, traderUsername) {
-    const teamKey = `team_${teamNumber}`;
-    localStorage.setItem(teamKey, traderUsername);
-}
-
-function getTeam(teamNumber) {
-    return localStorage.getItem(`team_${teamNumber}`) || null;
-}
-
-function getAllTeams() {
-    const teams = {};
-    for (let i = 1; i <= 30; i++) {
-        const key = `team_${i}`;
-        const trader = localStorage.getItem(key);
-        if (trader) {
-            const teamName = `Team ${i}`;
-            if (!teams[teamName]) {
-                teams[teamName] = [];
-            }
-            teams[teamName].push(trader);
-        }
+    if (userError) {
+        throw userError;
     }
+
+    // Save to teams table
+    const { error: teamError } = await supabase
+        .from("teams")
+        .insert([{ team_number: teamNumber, trader_username: username }]);
+
+    if (teamError) {
+        throw teamError;
+    }
+}
+
+async function getTeam(teamNumber) {
+    const { data, error } = await supabase
+        .from("teams")
+        .select("trader_username")
+        .eq("team_number", teamNumber);
+
+    if (error) {
+        console.error(error);
+        return null;
+    }
+
+    return data.map((d) => d.trader_username);
+}
+
+async function getAllTeams() {
+    const { data, error } = await supabase.from("teams").select("team_number, trader_username");
+
+    if (error) {
+        console.error(error);
+        return {};
+    }
+
+    const teams = {};
+    for (const row of data) {
+        const teamName = `Team ${row.team_number}`;
+        if (!teams[teamName]) teams[teamName] = [];
+        teams[teamName].push(row.trader_username);
+    }
+
     return teams;
 }
 
-// ------------------------
-// 🔹 BROKER UTILITIES
-// ------------------------
-
-function setCurrentParticipant(participantUsername) {
-    localStorage.setItem("currentParticipant", participantUsername);
+// === BROKER UTILITIES ===
+function setCurrentParticipant(username) {
+    sessionStorage.setItem("currentParticipant", username);
 }
 
 function getCurrentParticipant() {
-    return localStorage.getItem("currentParticipant");
+    return sessionStorage.getItem("currentParticipant");
 }
 
 function removeCurrentParticipant() {
-    localStorage.removeItem("currentParticipant");
+    sessionStorage.removeItem("currentParticipant");
 }
 
-// ------------------------
-// 🔹 TEAM LEADERBOARD
-// ------------------------
-
-function generateTeamLeaderboard() {
+// === TEAM LEADERBOARD ===
+async function generateTeamLeaderboard() {
+    const teams = await getAllTeams();
     const leaderboard = [];
 
-    for (let i = 1; i <= 30; i++) {
-        const trader = getTeam(i);
-        if (!trader) continue;
-
-        const teamBalance = calculateBalance(trader);
-        const stockTotals = getStockHoldings(trader);
-
-        leaderboard.push({
-            team: `Team ${i}`,
-            totalBalance: parseFloat(teamBalance.toFixed(2)),
-            totalStocks: stockTotals,
-        });
+    for (const [teamName, traders] of Object.entries(teams)) {
+        for (const trader of traders) {
+            const balance = await calculateBalance(trader);
+            const stocks = await getStockHoldings(trader);
+            leaderboard.push({
+                team: teamName,
+                totalBalance: balance,
+                totalStocks: stocks,
+            });
+        }
     }
 
     leaderboard.sort((a, b) => b.totalBalance - a.totalBalance);
     return leaderboard;
 }
 
-function getStockHoldings(user) {
-    const data = getUserData(user);
+async function getStockHoldings(username) {
+    const data = await getUserData(username);
     const holdings = {};
 
-    data.bought.forEach((entry) => {
-        const qty = parseInt(entry.quantity);
-        holdings[entry.stock] = (holdings[entry.stock] || 0) + qty;
-    });
+    for (const t of data.bought) {
+        const qty = parseInt(t.quantity);
+        holdings[t.stock] = (holdings[t.stock] || 0) + qty;
+    }
 
-    data.sold.forEach((entry) => {
-        const qty = parseInt(entry.quantity);
-        holdings[entry.stock] = (holdings[entry.stock] || 0) - qty;
-    });
+    for (const t of data.sold) {
+        const qty = parseInt(t.quantity);
+        holdings[t.stock] = (holdings[t.stock] || 0) - qty;
+    }
 
-    // Remove zero or negative holdings
     for (const stock in holdings) {
         if (holdings[stock] <= 0) delete holdings[stock];
     }
 
     return holdings;
-}
-
-// ------------------------
-// 🔹 TEAM ACCOUNT CREATION
-// ------------------------
-
-function registerTeamAccount(teamNumber, username, password) {
-    if (!username || !password) {
-        throw new Error("Username and password are required.");
-    }
-
-    // Save trader to team
-    saveTeam(teamNumber, username);
-
-    // Save credentials
-    localStorage.setItem(
-        `team_auth_${username}`,
-        JSON.stringify({
-            teamNumber,
-            username,
-            password,
-        })
-    );
-}
-
-function getTeamAuth(username) {
-    return JSON.parse(localStorage.getItem(`team_auth_${username}`));
 }

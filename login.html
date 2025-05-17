@@ -1,12 +1,18 @@
-<!-- login.html -->
 <!DOCTYPE html>
 <html>
     <head>
         <title>Login</title>
         <link rel="stylesheet" href="styles.css" />
+
+        <!-- 🔹 Load Supabase (must be FIRST and use defer) -->
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+
+        <!-- 🔹 Initialize Supabase client (SECOND and defer) -->
+        <script src="Scripts/supabaseClient.js" defer></script>
+
+        <!-- 🔹 Load utils and logic (AFTER supabase is ready) -->
         <script src="Scripts/utils.js" defer></script>
         <script src="Scripts/login.js" defer></script>
-        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
     </head>
     <body>
         <div class="container">
