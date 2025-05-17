@@ -4,9 +4,10 @@
     <head>
         <title>Buy/Sell Stocks</title>
         <link rel="stylesheet" href="styles.css" />
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+        <script src="Scripts/supabaseClient.js" defer></script>
         <script src="Scripts/utils.js" defer></script>
         <script src="Scripts/purchases.js" defer></script>
-        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
     </head>
     <body>
         <div class="container">
@@ -106,16 +107,5 @@
                 </div>
             </div>
         </div>
-        <script>
-            window.onload = function () {
-                if (!initPage()) return;
-                const role = localStorage.getItem("currentRole");
-                if (role !== "broker" && role !== "admin") {
-                    window.location.href = "index.html";
-                    return;
-                }
-                // ...existing purchases.js logic...
-            };
-        </script>
     </body>
 </html>
