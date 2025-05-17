@@ -107,7 +107,7 @@ function getRole() {
 }
 
 // === TEAM REGISTRATION ===
-async function registerTeamAccount(teamNumber, username, password) {
+async function registerTeamAccount(username, password) {
     // Save to users table
     const { error: userError } = await supabase
         .from("users")
@@ -115,15 +115,6 @@ async function registerTeamAccount(teamNumber, username, password) {
 
     if (userError) {
         throw userError;
-    }
-
-    // Save to teams table
-    const { error: teamError } = await supabase
-        .from("teams")
-        .insert([{ team_number: teamNumber, trader_username: username }]);
-
-    if (teamError) {
-        throw teamError;
     }
 }
 

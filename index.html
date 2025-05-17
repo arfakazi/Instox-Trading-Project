@@ -26,7 +26,7 @@
                     el("portfolioBtn").style.display = "none";
                     el("purchasesBtn").style.display = "";
                     el("leaderboardBtn").style.display = "";
-                    el("teamRegBtn").style.display = "";
+                    el("teamRegBtn").style.display = "none";
                     el("adminButton").style.display = "none";
                 } else if (role === "admin") {
                     el("portfolioBtn").style.display = "";
@@ -67,7 +67,7 @@
                             onclick="window.location.href='team_registration.html'"
                             class="secondary"
                         >
-                            Register Team (Broker Only)
+                            Register Team (Admin Only)
                         </button>
                         <button id="adminButton" onclick="window.location.href='admin.html'">
                             Admin Panel
