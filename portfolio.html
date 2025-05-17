@@ -4,9 +4,10 @@
     <head>
         <title>Portfolio</title>
         <link rel="stylesheet" href="styles.css" />
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+        <script src="Scripts/supabaseClient.js" defer></script>
         <script src="Scripts/utils.js" defer></script>
         <script src="Scripts/portfolio.js" defer></script>
-        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
     </head>
     <body>
         <div class="container">
@@ -73,17 +74,5 @@
                 <button class="destructive" onclick="logout()">Logout</button>
             </div>
         </div>
-        <script>
-            window.onload = function () {
-                // Role-based access
-                if (!initPage()) return;
-                const role = localStorage.getItem("currentRole");
-                if (role !== "team" && role !== "admin") {
-                    window.location.href = "index.html";
-                    return;
-                }
-                displayPortfolio();
-            };
-        </script>
     </body>
 </html>
