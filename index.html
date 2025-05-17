@@ -4,37 +4,38 @@
     <head>
         <title>InStocks - Stock Market Simulation</title>
         <link rel="stylesheet" href="styles.css" />
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+        <script src="Scripts/supabaseClient.js" defer></script>
         <script src="Scripts/utils.js" defer></script>
-        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
-        <script>
-            // Initialize page when loaded
-            window.onload = function () {
-                // Check if user is logged in
-                initPage();
+        <script defer>
+            window.addEventListener("DOMContentLoaded", () => {
+                if (!initPage()) return;
 
-                // Role-based navigation
-                const role = localStorage.getItem("currentRole");
-                if (role === "team") {
-                    document.getElementById("portfolioBtn").style.display = "";
-                    document.getElementById("purchasesBtn").style.display = "none";
-                    document.getElementById("leaderboardBtn").style.display = "none";
-                    document.getElementById("teamRegBtn").style.display = "none";
-                    document.getElementById("adminButton").style.display = "none";
+                const role = getRole(); // use helper from utils.js
+                const el = (id) => document.getElementById(id);
+
+                // Hide/show buttons based on role
+                if (role === "trader") {
+                    el("portfolioBtn").style.display = "";
+                    el("purchasesBtn").style.display = "none";
+                    el("leaderboardBtn").style.display = "none";
+                    el("teamRegBtn").style.display = "none";
+                    el("adminButton").style.display = "none";
                 } else if (role === "broker") {
-                    document.getElementById("portfolioBtn").style.display = "none";
-                    document.getElementById("purchasesBtn").style.display = "";
-                    document.getElementById("leaderboardBtn").style.display = "";
-                    document.getElementById("teamRegBtn").style.display = "";
-                    document.getElementById("adminButton").style.display = "none";
+                    el("portfolioBtn").style.display = "none";
+                    el("purchasesBtn").style.display = "";
+                    el("leaderboardBtn").style.display = "";
+                    el("teamRegBtn").style.display = "";
+                    el("adminButton").style.display = "none";
                 } else if (role === "admin") {
-                    document.getElementById("portfolioBtn").style.display = "";
-                    document.getElementById("purchasesBtn").style.display = "";
-                    document.getElementById("leaderboardBtn").style.display = "";
-                    document.getElementById("teamRegBtn").style.display = "";
-                    document.getElementById("adminButton").style.display = "";
+                    el("portfolioBtn").style.display = "";
+                    el("purchasesBtn").style.display = "";
+                    el("leaderboardBtn").style.display = "";
+                    el("teamRegBtn").style.display = "";
+                    el("adminButton").style.display = "";
                 }
-            };
+            });
         </script>
     </head>
     <body>
@@ -87,6 +88,7 @@
                         <li>Track your portfolio performance</li>
                         <li>Compete with other traders on the leaderboard</li>
                     </ul>
+                    <br />
                     <p>Each team starts with AED100,000 of virtual currency.</p>
                 </div>
             </div>
