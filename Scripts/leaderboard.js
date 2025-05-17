@@ -1,32 +1,55 @@
 // leaderboard.js
 
-function loadTeamLeaderboard() {
+document.addEventListener("DOMContentLoaded", () => {
+    loadTeamLeaderboard();
+});
+
+async function loadTeamLeaderboard() {
     const tbody = document.getElementById("teamLeaderboardBody");
     tbody.innerHTML = "";
-    const leaderboard = generateTeamLeaderboard();
-    leaderboard.forEach((team, idx) => {
-        const stocks = Object.entries(team.totalStocks)
-            .map(([stock, qty]) => `${stock}: ${qty}`)
-            .join("<br>");
-        const trader = getTeam(idx + 1);
+
+    const users = await getAllTeams();
+    const leaderboard = [];
+
+    // Collect each trader's team and financial data
+    for (const user of users) {
+        const username = user.username;
+
+        // Skip non-traders
+        if (user.role !== "trader") continue;
+
+        const balance = await calculateBalance(username);
+        const stocks = await getStockHoldings(username);
+
+        // No teams table, so just use username or a placeholder
+        const teamNumber = username; // or "-" if you want to leave it blank
+
+        leaderboard.push({
+            team: teamNumber,
+            trader: username,
+            totalBalance: balance,
+            totalStocks: stocks,
+        });
+    }
+
+    // Sort leaderboard by total balance descending
+    leaderboard.sort((a, b) => b.totalBalance - a.totalBalance);
+
+    // Populate table rows
+    leaderboard.forEach((entry, idx) => {
+        const stocks =
+            Object.entries(entry.totalStocks)
+                .map(([stock, qty]) => `${stock}: ${qty}`)
+                .join("<br>") || "-";
+
         const row = document.createElement("tr");
         row.innerHTML = `
             <td>${idx + 1}</td>
-            <td>${team.team}</td>
-            <td>${trader}</td>
-            <td>${formatCurrency(team.totalBalance)}</td>
-            <td>${stocks || "-"}</td>
+            <td>${entry.team}</td>
+            <td>${entry.trader}</td>
+            <td>${formatCurrency(entry.totalBalance)}</td>
+            <td>${stocks}</td>
         `;
         tbody.appendChild(row);
     });
 }
-
-// Initialize page
-window.onload = function () {
-    // Check if user is logged in
-    if (!initPage()) {
-        return;
-    }
-    // Only load team leaderboard
-    loadTeamLeaderboard();
-};
