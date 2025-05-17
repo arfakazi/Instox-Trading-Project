@@ -119,12 +119,25 @@ async function viewUserDetails(userId) {
     const userData = await getUserData(userId);
     const balance = await calculateBalance(userId);
 
+    let totalSpent = 0;
+    let totalEarned = 0;
+
+    // Calculate total spent and earned
+    for (const transaction of userData.bought) {
+        totalSpent += transaction.amount;
+    }
+    for (const transaction of userData.sold) {
+        totalEarned += transaction.amount;
+    }
+
+    const profit = totalEarned - totalSpent;
     const content = `
         <h3>User Details: ${userId}</h3>
         <p>Current Balance: ${formatCurrency(balance)}</p>
         <h4>Transaction Summary:</h4>
         <p>Purchases: ${userData.bought.length}</p>
         <p>Sales: ${userData.sold.length}</p>
+        <p>Profit: ${formatCurrency(profit)}</p>
     `;
 
     const modal = document.getElementById("detailsModal");

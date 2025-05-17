@@ -3,16 +3,28 @@
 document.addEventListener("DOMContentLoaded", async () => {
     if (!initPage()) return;
 
-    const role = sessionStorage.getItem("currentRole");
-    if (role !== "trader" && role !== "admin") {
-        window.location.href = "index.html";
-        return;
+    const role = getRole();
+    if (role === "broker") {
+        const users = await getAllTeams();
+        const dropdown = document.createElement("select");
+        dropdown.id = "portfolioUserSelect";
+        users.forEach((u) => {
+            const opt = document.createElement("option");
+            opt.value = u.username;
+            opt.text = u.username;
+            dropdown.appendChild(opt);
+        });
+        document
+            .querySelector(".container")
+            .insertBefore(dropdown, document.querySelector(".card"));
+        dropdown.addEventListener("change", () => displayPortfolio(dropdown.value));
+        await displayPortfolio(dropdown.value);
+    } else {
+        await displayPortfolio(getUser());
     }
-
-    await displayPortfolio();
 });
 
-async function displayPortfolio() {
+async function displayPortfolio(username) {
     const boughtTable = document.getElementById("boughtTable");
     const soldTable = document.getElementById("soldTable");
     const cashElement = document.querySelector(".card-content h2");
@@ -22,17 +34,11 @@ async function displayPortfolio() {
     while (boughtTable.rows.length > 1) boughtTable.deleteRow(1);
     while (soldTable.rows.length > 1) soldTable.deleteRow(1);
 
-    const currentUser = getUser();
-    if (!currentUser) {
-        window.location.href = "login.html";
-        return;
-    }
-
     // Fetch user ID
     const { data: userRecord, error: userError } = await supabase
         .from("users")
         .select("id")
-        .eq("username", currentUser)
+        .eq("username", username)
         .single();
 
     if (userError || !userRecord) {

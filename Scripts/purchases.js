@@ -57,7 +57,21 @@ window.onload = async () => {
     });
 
     if (!participantSelect.value) participantWarning.style.display = "block";
+
+    await populateStockDropdown();
 };
+
+async function populateStockDropdown() {
+    const { data: companies, error } = await supabase.from("ipo").select("company");
+    const stockSelect = document.getElementById("stockSelect");
+    stockSelect.innerHTML = ""; // Clear existing
+    companies.forEach(({ company }) => {
+        const option = document.createElement("option");
+        option.value = company;
+        option.text = company;
+        stockSelect.appendChild(option);
+    });
+}
 
 // Buy stock
 async function buyStock() {
@@ -102,6 +116,12 @@ async function buyStock() {
             timestamp: new Date().toISOString(),
         },
     ]);
+
+    // In buyStock(), if buying from IPO:
+    await supabase
+        .from("ipo")
+        .update({ shares_sold: supabase.literal(`shares_sold + ${quantity}`) })
+        .eq("company", stock);
 
     if (error) {
         console.error(error);
