@@ -31,14 +31,7 @@
                 <div class="card-content">
                     <div class="form-group">
                         <label for="stockSelect">Select Stock</label>
-                        <select id="stockSelect">
-                            <option value="Apple">Apple</option>
-                            <option value="Nike">Nike</option>
-                            <option value="Amazon">Amazon</option>
-                            <option value="O&G">O&G</option>
-                            <option value="Lulu">Lulu</option>
-                            <option value="Salik">Salik</option>
-                        </select>
+                        <select id="stockSelect"></select>
                     </div>
 
                     <div class="form-group">
@@ -72,7 +65,7 @@
                     </div>
                 </div>
                 <div class="card-footer">
-                    <button onclick="buyStock()">Buy</button>
+                    <button id="buyButton" class="primary" onclick="buyStock()">Buy</button>
                     <button onclick="sellStock()">Sell</button>
                 </div>
             </div>
@@ -90,6 +83,21 @@
                     <div id="participantWarning" class="warning-message" style="display: none">
                         Please select a participant before trading.
                     </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Buy from IPO</div>
+                </div>
+                <div class="card-content">
+                    <label for="ipoStockSelect">Company</label>
+                    <select id="ipoStockSelect"></select>
+                    <label for="ipoPrice">Price</label>
+                    <input type="number" id="ipoPrice" min="0" step="0.01" />
+                    <label for="ipoQuantity">Quantity</label>
+                    <input type="number" id="ipoQuantity" min="1" step="1" />
+                    <button id="ipoBuyButton" onclick="buyFromIPO()">Buy from IPO</button>
                 </div>
             </div>
 

@@ -47,6 +47,10 @@ window.onload = async () => {
         participantSelect.appendChild(opt);
     });
 
+    // Set initial state of Buy button
+    const buyButton = document.getElementById("buyButton");
+    buyButton.disabled = !participantSelect.value;
+
     const selected = getCurrentParticipant();
     if (selected) participantSelect.value = selected;
 
@@ -54,26 +58,57 @@ window.onload = async () => {
         setCurrentParticipant(this.value);
         participantWarning.style.display = this.value ? "none" : "block";
         updateBalanceDisplay();
+
+        buyButton.disabled = !this.value;
+        if (buyButton.disabled) {
+            buyButton.classList.add("disabled-gray");
+        } else {
+            buyButton.classList.remove("disabled-gray");
+        }
     });
 
     if (!participantSelect.value) participantWarning.style.display = "block";
 
     await populateStockDropdown();
+    await populateIPODropdown();
 };
 
 async function populateStockDropdown() {
     const { data: companies, error } = await supabase.from("ipo").select("company");
     const stockSelect = document.getElementById("stockSelect");
     stockSelect.innerHTML = ""; // Clear existing
-    companies.forEach(({ company }) => {
-        const option = document.createElement("option");
-        option.value = company;
-        option.text = company;
-        stockSelect.appendChild(option);
-    });
+    if (companies) {
+        companies.forEach(({ company }) => {
+            const option = document.createElement("option");
+            option.value = company;
+            option.text = company;
+            stockSelect.appendChild(option);
+        });
+    }
 }
 
-// Buy stock
+// Populate IPO dropdown
+async function populateIPODropdown() {
+    const { data: companies, error } = await supabase.from("ipo").select("company");
+    if (error) {
+        console.error("Error fetching IPO companies:", error);
+        return;
+    }
+    const ipoStockSelect = document.getElementById("ipoStockSelect");
+    ipoStockSelect.innerHTML = "";
+    if (companies) {
+        companies.forEach(({ company }) => {
+            const option = document.createElement("option");
+            option.value = company;
+            option.text = company;
+            ipoStockSelect.appendChild(option);
+        });
+    }
+    // No price to set automatically, so clear or leave ipoPrice as is
+    document.getElementById("ipoPrice").value = "";
+}
+
+// Buy stock (for a participant, not IPO)
 async function buyStock() {
     const participant = getCurrentParticipant();
     if (!participant) {
@@ -116,12 +151,6 @@ async function buyStock() {
             timestamp: new Date().toISOString(),
         },
     ]);
-
-    // In buyStock(), if buying from IPO:
-    await supabase
-        .from("ipo")
-        .update({ shares_sold: supabase.literal(`shares_sold + ${quantity}`) })
-        .eq("company", stock);
 
     if (error) {
         console.error(error);
@@ -212,6 +241,71 @@ async function sellStock() {
     updateBalanceDisplay();
 }
 
+// Buy from IPO (for selected participant)
+async function buyFromIPO() {
+    const participant = getCurrentParticipant();
+    if (!participant) {
+        showPopup("Please select a participant to buy IPO shares for.", "error");
+        return;
+    }
+    const { data: user } = await supabase
+        .from("users")
+        .select("id")
+        .eq("username", participant)
+        .single();
+    if (!user) return showPopup("Participant not found.", "error");
+
+    const stock = document.getElementById("ipoStockSelect").value;
+    const price = parseFloat(document.getElementById("ipoPrice").value);
+    const quantity = parseInt(document.getElementById("ipoQuantity").value);
+
+    if (!validateTradeInputs(price, quantity)) return;
+
+    // Check IPO shares available
+    const { data: ipoData } = await supabase
+        .from("ipo")
+        .select("total_shares, shares_sold")
+        .eq("company", stock)
+        .single();
+    const available = ipoData.total_shares - ipoData.shares_sold;
+    if (quantity > available) {
+        return showPopup(`Only ${available} shares available in IPO for ${stock}.`, "error");
+    }
+
+    // Check participant's balance
+    if (!(await canAffordPurchase(participant, price * quantity))) {
+        return showPopup("Insufficient funds.", "error");
+    }
+
+    // Insert transaction for the participant
+    const { error } = await supabase.from("transactions").insert([
+        {
+            user_id: user.id,
+            stock,
+            price,
+            quantity,
+            type: "buy",
+            timestamp: new Date().toISOString(),
+            counterparty: "IPO",
+        },
+    ]);
+    await supabase
+        .from("ipo")
+        .update({ shares_sold: ipoData.shares_sold + quantity })
+        .eq("company", stock);
+
+    if (error) {
+        console.error(error);
+        return showPopup("Error recording IPO transaction.", "error");
+    }
+
+    showPopup(
+        `Successfully bought ${quantity} of ${stock} from IPO at ${formatCurrency(price)}.`,
+        "success"
+    );
+    updateBalanceDisplay();
+}
+
 // Helpers
 function validateTradeInputs(price, quantity) {
     if (!isValidNumber(price)) {
@@ -228,9 +322,9 @@ function validateTradeInputs(price, quantity) {
 }
 
 async function updateBalanceDisplay() {
-    const currentUser = getCurrentParticipant();
-    if (currentUser) {
-        const balance = await calculateBalance(currentUser);
+    const participant = getCurrentParticipant();
+    if (participant) {
+        const balance = await calculateBalance(participant);
         const balanceElement = document.getElementById("balanceDisplay");
         if (balanceElement) {
             balanceElement.innerText = formatCurrency(balance);
