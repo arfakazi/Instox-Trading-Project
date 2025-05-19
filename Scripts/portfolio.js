@@ -4,7 +4,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!initPage()) return;
 
     const role = getRole();
-    if (role === "broker") {
+    if (role === "broker" || role === "admin") {
         const users = await getAllTeams();
         const dropdown = document.createElement("select");
         dropdown.id = "portfolioUserSelect";
