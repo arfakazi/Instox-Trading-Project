@@ -178,3 +178,44 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 });
+
+// Add this new function
+async function resetEverything() {
+    if (
+        !confirmAction(
+            "Are you sure you want to reset EVERYTHING? This will clear all transactions and reset IPO shares to 0. This action cannot be undone."
+        )
+    ) {
+        return;
+    }
+
+    try {
+        // Delete all transactions
+        await supabase.from("transactions").delete().neq("id", 0);
+        
+        // Reset all IPO shares_sold to 0
+        const { error: ipoError } = await supabase
+            .from("ipo")
+            .update({ shares_sold: 0 })
+            .neq("id", 0);
+
+        if (ipoError) throw ipoError;
+
+        const message = document.getElementById("statusMessage");
+        message.textContent = "Successfully reset everything!";
+        message.className = "success-message";
+        message.style.display = "block";
+
+        setTimeout(() => {
+            message.style.display = "none";
+        }, 3000);
+
+        await loadAdminPanel();
+    } catch (error) {
+        console.error("Failed to reset everything:", error);
+        const message = document.getElementById("statusMessage");
+        message.textContent = "Failed to reset everything. Check console for details.";
+        message.className = "error-message";
+        message.style.display = "block";
+    }
+}

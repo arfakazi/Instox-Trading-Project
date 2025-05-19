@@ -13,15 +13,29 @@ window.onload = async () => {
 
     const currentUser = getUser();
 
-    // Populate 'Sell To' dropdown
+    // Populate both Buy From and Sell To dropdowns with traders
+    const buyFromDropdown = document.getElementById("buyFromUser");
     const sellToDropdown = document.getElementById("sellToUser");
     const allUsers = await getAllTeams();
-    allUsers.forEach((user) => {
+    const traders = allUsers.filter(user => user.role === "trader");
+    
+    // Add blank default options
+    buyFromDropdown.add(new Option("Select Team to BUY FROM", ""));
+    sellToDropdown.add(new Option("Select Team to SELL TO", ""));
+    
+    traders.forEach((user) => {
         if (user.username !== currentUser) {
-            const option = document.createElement("option");
-            option.value = user.username;
-            option.text = user.username;
-            sellToDropdown.add(option);
+            // Add to Buy From dropdown
+            const buyOption = document.createElement("option");
+            buyOption.value = user.username;
+            buyOption.text = user.username;
+            buyFromDropdown.add(buyOption);
+
+            // Add to Sell To dropdown
+            const sellOption = document.createElement("option");
+            sellOption.value = user.username;
+            sellOption.text = user.username;
+            sellToDropdown.add(sellOption);
         }
     });
 
@@ -36,11 +50,11 @@ window.onload = async () => {
         this.value = this.value.replace(/[^0-9]/g, "");
     });
 
-    // Setup participant dropdown
+    // Setup participant dropdown with only traders
     const participantSelect = document.getElementById("participantSelect");
     const participantWarning = document.getElementById("participantWarning");
 
-    allUsers.forEach((user) => {
+    traders.forEach((user) => {
         const opt = document.createElement("option");
         opt.value = user.username;
         opt.text = user.username;
@@ -119,11 +133,18 @@ async function buyStock() {
     const stock = document.getElementById("stockSelect").value;
     const price = parseFloat(document.getElementById("price").value);
     const quantity = parseInt(document.getElementById("quantity").value);
+    const fromUser = document.getElementById("buyFromUser").value;
+
+    if (!fromUser) {
+        showPopup("Please select a trader to buy from.", "error");
+        return;
+    }
 
     if (!validateTradeInputs(price, quantity)) return;
 
     const totalCost = price * quantity;
 
+    // Check if buyer has enough funds
     if (!(await canAffordPurchase(participant, totalCost))) {
         showPopup(
             `Cannot buy stocks. Insufficient funds. You need ${formatCurrency(totalCost)}.`,
@@ -132,24 +153,54 @@ async function buyStock() {
         return;
     }
 
-    if (!confirmAction(`Buy ${quantity} of ${stock} at ${formatCurrency(price)} each?`)) return;
+    // Check if seller has enough stocks
+    const sellerStocks = await getAvailableStockQuantity(fromUser, stock);
+    if (sellerStocks < quantity) {
+        showPopup(
+            `Seller only has ${sellerStocks} shares of ${stock} available.`,
+            "error"
+        );
+        return;
+    }
 
-    const { data: user } = await supabase
+    if (!confirmAction(`Buy ${quantity} of ${stock} from ${fromUser} at ${formatCurrency(price)} each?`)) return;
+
+    const timestamp = new Date().toISOString();
+
+    // Get buyer and seller IDs
+    const { data: buyerUser } = await supabase
         .from("users")
         .select("id")
         .eq("username", participant)
         .single();
-    if (!user) return showPopup("User not found.", "error");
+    const { data: sellerUser } = await supabase
+        .from("users")
+        .select("id")
+        .eq("username", fromUser)
+        .single();
 
+    if (!buyerUser || !sellerUser) return showPopup("Buyer or seller not found.", "error");
+
+    // Insert both buy and sell transactions
     const { error } = await supabase.from("transactions").insert([
         {
-            user_id: user.id,
+            user_id: buyerUser.id,
             stock,
             price,
             quantity,
             type: "buy",
-            timestamp: new Date().toISOString(),
+            counterparty: fromUser,
+            timestamp: timestamp
         },
+        {
+            user_id: sellerUser.id,
+            stock,
+            price,
+            quantity,
+            type: "sell",
+            counterparty: participant,
+            timestamp: timestamp
+        }
     ]);
 
     if (error) {
@@ -158,7 +209,7 @@ async function buyStock() {
     }
 
     showPopup(
-        `Successfully bought ${quantity} of ${stock} at ${formatCurrency(price)}.`,
+        `Successfully bought ${quantity} of ${stock} from ${fromUser} at ${formatCurrency(price)}.`,
         "success"
     );
     updateBalanceDisplay();
