@@ -11,31 +11,33 @@ async function loadTeamLeaderboard() {
     const users = await getAllTeams();
     const leaderboard = [];
 
-    // Collect each trader's team and financial data
     for (const user of users) {
         const username = user.username;
-
-        // Skip non-traders
         if (user.role !== "trader") continue;
 
         const balance = await calculateBalance(username);
         const stocks = await getStockHoldings(username);
+        const userData = await getUserData(username);
 
-        // No teams table, so just use username or a placeholder
-        const teamNumber = username; // or "-" if you want to leave it blank
+        // Calculate profit: total earned from sells - total spent on buys
+        const totalSpent = userData.bought.reduce(
+            (sum, t) => sum + parseFloat(t.price) * parseInt(t.quantity), 0
+        );
+        const totalEarned = userData.sold.reduce(
+            (sum, t) => sum + parseFloat(t.price) * parseInt(t.quantity), 0
+        );
+        const profit = totalEarned - totalSpent;
 
         leaderboard.push({
-            team: teamNumber,
-            trader: username,
-            totalBalance: balance,
+            team: username,
+            totalValue: balance,
+            profit,
             totalStocks: stocks,
         });
     }
 
-    // Sort leaderboard by total balance descending
-    leaderboard.sort((a, b) => b.totalBalance - a.totalBalance);
+    leaderboard.sort((a, b) => b.totalValue - a.totalValue);
 
-    // Populate table rows
     leaderboard.forEach((entry, idx) => {
         const stocks =
             Object.entries(entry.totalStocks)
@@ -46,8 +48,8 @@ async function loadTeamLeaderboard() {
         row.innerHTML = `
             <td>${idx + 1}</td>
             <td>${entry.team}</td>
-            <td>${entry.trader}</td>
-            <td>${formatCurrency(entry.totalBalance)}</td>
+            <td>${formatCurrency(entry.totalValue)}</td>
+            <td>${formatCurrency(entry.profit)}</td>
             <td>${stocks}</td>
         `;
         tbody.appendChild(row);

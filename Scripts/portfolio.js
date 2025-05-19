@@ -6,9 +6,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     const role = getRole();
     if (role === "broker" || role === "admin") {
         const users = await getAllTeams();
+        const traders = users.filter((u) => u.role === "trader"); // Only traders
         const dropdown = document.createElement("select");
         dropdown.id = "portfolioUserSelect";
-        users.forEach((u) => {
+        traders.forEach((u) => {
             const opt = document.createElement("option");
             opt.value = u.username;
             opt.text = u.username;
@@ -70,7 +71,7 @@ async function displayPortfolio(username) {
 
     // Process buys
     for (const tx of bought) {
-        const { stock, quantity, price, created_at, counterparty } = tx;
+        const { stock, quantity, price, timestamp, counterparty } = tx;
         const total = quantity * price;
         totalSpent += total;
 
@@ -83,13 +84,13 @@ async function displayPortfolio(username) {
             <td>${quantity}</td>
             <td>${formatCurrency(price)}</td>
             <td>${formatCurrency(total)}</td>
-            <td>${new Date(created_at).toLocaleDateString()} from ${counterparty || "Market"}</td>
+            <td>${new Date(timestamp).toLocaleDateString()} from ${counterparty || "Market"}</td>
         `;
     }
 
     // Process sells
     for (const tx of sold) {
-        const { stock, quantity, price, created_at, counterparty } = tx;
+        const { stock, quantity, price, timestamp, counterparty } = tx;
         const total = quantity * price;
         totalEarned += total;
 
@@ -102,7 +103,7 @@ async function displayPortfolio(username) {
             <td>${quantity}</td>
             <td>${formatCurrency(price)}</td>
             <td>${formatCurrency(total)}</td>
-            <td>${new Date(created_at).toLocaleDateString()} to ${counterparty || "Market"}</td>
+            <td>${new Date(timestamp).toLocaleDateString()} to ${counterparty || "Market"}</td>
         `;
     }
 

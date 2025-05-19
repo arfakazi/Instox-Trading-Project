@@ -85,9 +85,13 @@ async function resetAllUsers() {
         return;
     }
 
-    for (let i = 1; i <= 20; i++) {
-        const userId = `Team${i}`;
-        await resetTransactions(userId);
+    // Fetch all traders from the database
+    const users = await getAllTeams();
+    const traders = users.filter((user) => user.role === "trader");
+
+    // Reset transactions for each trader
+    for (const trader of traders) {
+        await resetTransactions(trader.username);
     }
 
     const message = document.getElementById("statusMessage");
@@ -179,7 +183,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 });
 
-// Add this new function
 async function resetEverything() {
     if (
         !confirmAction(
@@ -190,14 +193,19 @@ async function resetEverything() {
     }
 
     try {
-        // Delete all transactions
-        await supabase.from("transactions").delete().neq("id", 0);
-        
-        // Reset all IPO shares_sold to 0
+        // Delete all transactions (match all rows)
+        const { error: transactionError } = await supabase
+            .from("transactions")
+            .delete()
+            .not('id', 'is', null); // This matches all rows
+
+        if (transactionError) throw transactionError;
+
+        // Reset all IPO shares_sold to 0 (match all rows)
         const { error: ipoError } = await supabase
             .from("ipo")
             .update({ shares_sold: 0 })
-            .neq("id", 0);
+            .not('id', 'is', null); // This matches all rows
 
         if (ipoError) throw ipoError;
 

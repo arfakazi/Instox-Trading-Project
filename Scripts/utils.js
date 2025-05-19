@@ -118,20 +118,6 @@ async function registerTeamAccount(username, password) {
     }
 }
 
-async function getTeam(teamNumber) {
-    const { data, error } = await supabase
-        .from("teams")
-        .select("trader_username")
-        .eq("team_number", teamNumber);
-
-    if (error) {
-        console.error(error);
-        return null;
-    }
-
-    return data.map((d) => d.trader_username);
-}
-
 async function getAllTeams() {
     const { data, error } = await supabase
         .from("users")
@@ -156,30 +142,6 @@ function getCurrentParticipant() {
     return sessionStorage.getItem("currentParticipant");
 }
 
-function removeCurrentParticipant() {
-    sessionStorage.removeItem("currentParticipant");
-}
-
-// === TEAM LEADERBOARD ===
-async function generateTeamLeaderboard() {
-    const teams = await getAllTeams();
-    const leaderboard = [];
-
-    for (const [teamName, traders] of Object.entries(teams)) {
-        for (const trader of traders) {
-            const balance = await calculateBalance(trader);
-            const stocks = await getStockHoldings(trader);
-            leaderboard.push({
-                team: teamName,
-                totalBalance: balance,
-                totalStocks: stocks,
-            });
-        }
-    }
-
-    leaderboard.sort((a, b) => b.totalBalance - a.totalBalance);
-    return leaderboard;
-}
 
 async function getStockHoldings(username) {
     const data = await getUserData(username);
