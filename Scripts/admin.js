@@ -21,10 +21,13 @@ async function loadAdminPanel() {
         table.deleteRow(1);
     }
 
-    // Fetch all brokers and traders from Supabase
+    // Fetch all users from Supabase
     const users = await getAllTeams();
 
-    for (const user of users) {
+    // Filter to only show traders
+    const traders = users.filter((user) => user.role === "trader");
+
+    for (const user of traders) {
         const userId = user.username;
         const balance = await calculateBalance(userId);
         const userData = await getUserData(userId);
@@ -47,6 +50,7 @@ async function loadAdminPanel() {
         `;
     }
 }
+
 // Reset a single user
 async function resetUser(userId) {
     if (
@@ -124,10 +128,11 @@ async function viewUserDetails(userId) {
 
     // Calculate total spent and earned
     for (const transaction of userData.bought) {
-        totalSpent += transaction.amount;
+
+        totalSpent += parseFloat(transaction.price) * parseInt(transaction.quantity);
     }
     for (const transaction of userData.sold) {
-        totalEarned += transaction.amount;
+        totalEarned += parseFloat(transaction.price) * parseInt(transaction.quantity);
     }
 
     const profit = totalEarned - totalSpent;

@@ -37,14 +37,8 @@ async function login() {
 
     sessionStorage.setItem("currentUser", username);
     sessionStorage.setItem("currentRole", data.role);
-
-    if (data.role === "admin") {
-        window.location.href = "admin.html";
-    } else if (data.role === "broker") {
-        window.location.href = "leaderboard.html";
-    } else {
-        window.location.href = "portfolio.html";
-    }
+    window.location.href = "index.html"; 
+   
 }
 
 window.onload = function () {
